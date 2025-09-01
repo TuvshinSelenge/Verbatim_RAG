@@ -26,4 +26,4 @@ export OPENAI_API_KEY=your_api_key_here
 
 
 # To run the app while being in VERBATIM_RAG folder
-streamlit run streamlit_app.py or use the link: https://verbatim-rag-tuvshin-selenge.streamlit.app/
+streamlit run app.py
