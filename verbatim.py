@@ -1,13 +1,22 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import List, Any
-
-DEFAULT_DOCS_DIR = Path("/Users/tuvshinselenge/Documents/Documents - MacBook Air von Tuvshin/TU/Verbatim_RAG/doc").resolve()
-DEFAULT_DB_PATH  = Path("/Users/tuvshinselenge/Documents/Documents - MacBook Air von Tuvshin/TU/Verbatim_RAG/index.db").resolve()
-
-SPARSE_MODEL = "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill"
-
+from typing import List, Any, Optional
 import os
+
+# --- Portable defaults (project-relative) + env overrides ---
+BASE_DIR = Path(os.environ.get("VERBATIM_BASE_DIR", Path.cwd()))
+DEFAULT_DOCS_DIR = Path(os.environ.get("DOCS_DIR", BASE_DIR / "doc")).resolve()
+DEFAULT_DB_PATH  = Path(os.environ.get("DB_PATH",  BASE_DIR / "index.db")).resolve()
+
+SPARSE_MODEL = os.environ.get(
+    "VERBATIM_SPARSE_MODEL",
+    "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill",
+)
+EXTRACTOR_MODEL = os.environ.get(
+    "VERBATIM_EXTRACTOR",
+    "KRLabsOrg/verbatim-rag-modern-bert-v1",
+)
+
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 from verbatim_rag import VerbatimIndex
@@ -29,9 +38,11 @@ def _process_pdf(proc: DocumentProcessor, pdf_path: Path):
 
 def build_index(docs_dir: str | Path = DEFAULT_DOCS_DIR,
                 db_path: str | Path = DEFAULT_DB_PATH) -> str:
-
     docs_dir = Path(docs_dir).expanduser().resolve()
     db_path = Path(db_path).expanduser().resolve()
+
+    # Ensure docs directory exists (but do not create /Users/... on remote hosts)
+    docs_dir.mkdir(parents=True, exist_ok=True)
 
     pdfs: List[Path] = sorted(docs_dir.glob("*.pdf"))
     if not pdfs:
@@ -55,15 +66,21 @@ def _index(db_path: str | Path) -> VerbatimIndex:
 def ask(question: str,
         db_path: str | Path = DEFAULT_DB_PATH,
         k: int = 16):
-
+    """
+    Query the index. Uses ModernBERT span extractor for better answers.
+    Returns the raw VerbatimRAG response object.
+    """
     if not question or not str(question).strip():
         raise ValueError("Question is empty.")
+
     idx = _index(db_path)
-    rag = VerbatimRAG(index=idx, k=k)
+    extractor = ModelSpanExtractor(EXTRACTOR_MODEL)
+    rag = VerbatimRAG(index=idx, extractor=extractor, k=k)
     return rag.query(str(question).strip())
 
 
 def format_answer(resp: Any) -> str:
+    """Human-friendly formatting with inline sources."""
     if resp is None:
         return "No answer. Check that your index contains documents."
 
@@ -97,8 +114,8 @@ if __name__ == "__main__":
     import argparse
     p = argparse.ArgumentParser(description="Build index and ask questions (verbatim-rag).")
     p.add_argument("--build", action="store_true", help="Build/refresh the index from PDFs in docs dir.")
-    p.add_argument("--docs", default=str(DEFAULT_DOCS_DIR), help="Folder with PDFs.")
-    p.add_argument("--db",   default=str(DEFAULT_DB_PATH),  help="SQLite index path (index.db).")
+    p.add_argument("--docs", default=str(DEFAULT_DOCS_DIR), help="Folder with PDFs (default: ./doc).")
+    p.add_argument("--db",   default=str(DEFAULT_DB_PATH),  help="SQLite index path (default: ./index.db).")
     p.add_argument("question", nargs="*", help="Question to ask")
     args = p.parse_args()
 
