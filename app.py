@@ -6,8 +6,8 @@ import verbatim
 DOCS_DIR = verbatim.DEFAULT_DOCS_DIR
 DB_PATH  = verbatim.DEFAULT_DB_PATH
 
-st.set_page_config(page_title="Verbatim RAG Q&A", page_icon="🔎", layout="centered")
-st.title("🔎 Verbatim RAG")
+st.set_page_config(page_title="Verbatim RAG Q&A", layout="centered")
+st.title("Verbatim RAG")
 
 DOCS_DIR.mkdir(parents=True, exist_ok=True)
 st.caption(f"Index DB:  {'exists' if Path(DB_PATH).exists() else 'new will be created on build'}")
