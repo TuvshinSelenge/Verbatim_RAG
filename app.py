@@ -14,7 +14,7 @@ st.caption(f"Index DB:  {'exists' if Path(DB_PATH).exists() else 'new will be cr
 
 st.divider()
 
-# ---------------- Upload & (re)build ----------------
+# Upload 
 st.subheader("Add PDFs and build the index")
 uploaded = st.file_uploader("Drop PDF(s) here", type=["pdf"], accept_multiple_files=True)
 
@@ -45,7 +45,7 @@ if build_clicked:
 
 st.divider()
 
-# ---------------- Q&A ----------------
+# Q&A
 st.subheader("Ask a question")
 
 if "history" not in st.session_state:
